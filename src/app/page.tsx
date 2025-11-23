@@ -9,23 +9,31 @@ export default function Home() {
   const send = async () => {
     if (!input.trim()) return;
     const userMsg = { role: "user", content: input };
-    setMessages([...messages, userMsg]);
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
     setInput("");
     setLoading(true);
 
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: [...messages, userMsg], leadId: crypto.randomUUID() })
-    });
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: newMessages, leadId: crypto.randomUUID() })
+      });
 
-    const data = await res.json();
-    setLoading(false);
+      if (!res.ok) throw new Error('API call failed');
 
-    if (data.redirect) {
-      window.location.href = data.redirect;
-    } else {
-      setMessages(ms => [...ms, { role: "assistant", content: data.reply }]);
+      const data = await res.json();
+      setLoading(false);
+
+      if (data.redirect) {
+        window.location.href = data.redirect;
+      } else {
+        setMessages(ms => [...ms, { role: "assistant", content: data.reply }]);
+      }
+    } catch (error) {
+      setLoading(false);
+      setMessages(ms => [...ms, { role: "assistant", content: "System glitch—double-check your OpenAI key and retry. We're building empires here." }]);
     }
   };
 
@@ -34,7 +42,7 @@ export default function Home() {
       <div className="w-full max-w-2xl">
         <h1 className="text-4xl font-black mb-8 text-center">Most people stay broke. You won’t.</h1>
         
-        <div className="bg-zinc-900 rounded-2xl p-6 min-h-96 border border-zinc-800">
+        <div className="bg-zinc-900 rounded-2xl p-6 min-h-96 border border-zinc-800 mb-4">
           {messages.length === 0 && (
             <p className="text-zinc-500 text-center pt-20">Tell me your biggest business problem right now.</p>
           )}
@@ -45,22 +53,46 @@ export default function Home() {
               </span>
             </div>
           ))}
-          {loading && <p className="text-zinc-500">typing...</p>}
+          {loading && <p className="text-zinc-500 text-center">AI arming up...</p>}
         </div>
 
-        <div className="mt-4 flex gap-2">
+        <div className="flex gap-2">
           <input
             className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-6 py-4 text-lg focus:outline-none focus:border-purple-600"
-            placeholder="Type here..."
+            placeholder="Your move..."
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && send()}
           />
-          <button onClick={send} className="bg-purple-600 hover:bg-purple-500 px-8 rounded-xl font-bold">
+          <button 
+            onClick={send} 
+            disabled={loading}
+            className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 px-8 rounded-xl font-bold"
+          >
             Send
           </button>
         </div>
       </div>
     </div>
   );
-}
+}import type { Metadata } from 'next';
+import './globals.css';
+
+export const metadata: Metadata = {
+  title: 'AI Sales Agent - Close While You Sleep',
+  description: 'Automated high-ticket closer. Qualify, book, charge.',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}@tailwind base;
+@tailwind components;
+@tailwind utilities;
